@@ -1,1 +1,28 @@
 # mikufetch
+a simple system info fetch script with a Hatsune Miku ASCII art.
+
+this script shows basic system info like OS, kernel, uptime, CPU, GPU and more — all next to a cute Hatsune Miku in your terminal!
+
+---
+
+## how to Use
+
+1. clone repo:
+   ```bash
+   git clone https://github.com/yogurtmenn/mikufetch
+   ```
+
+2. go into folder:
+   ```bash
+   cd mikufetch
+   ```
+
+3. make script executable:
+   ```bash
+   chmod +x mikufetch
+   ```
+
+4. run it:
+   ```bash
+   ./mikufetch
+   ```
