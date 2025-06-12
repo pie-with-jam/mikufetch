@@ -9,7 +9,7 @@ this script shows basic system info like OS, kernel, uptime, CPU, GPU and more â
 
 1. clone repo:
    ```bash
-   git clone https://github.com/yogurtmenn/mikufetch
+   git clone https://github.com/yogurtmenn/mikufetch.git
    ```
 
 2. go into folder:
