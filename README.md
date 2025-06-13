@@ -19,10 +19,10 @@ this script shows basic system info like OS, kernel, uptime, CPU, GPU and more â
 
 3. make script executable:
    ```bash
-   chmod +x mikufetch
+   chmod +x mikufetch.py
    ```
 
 4. run it:
    ```bash
-   ./mikufetch
+   ./mikufetch.py
    ```
