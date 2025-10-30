@@ -1,35 +1,52 @@
 # mikufetch
-a simple cross-platform system info fetch script with a Hatsune Miku ASCII art.
 
-this script shows basic system info like OS, kernel, uptime, CPU, GPU and more - all next to a cute Hatsune Miku in your terminal!
+Cute cross-platform system info fetcher with Hatsune Miku ASCII art.
+
+Shows OS, kernel, uptime, CPU, GPU, memory and more next to a terminal Miku.
+
 ---
 
-## how to Use
+## Install
 
-### linux / macOS
+```bash
+pip install mikufetch
+```
+
+---
+
+## How to Use
+
+### Linux / macOS
 ```bash
 git clone https://github.com/yogurtmenn/mikufetch.git
 cd mikufetch
-chmod +x mikufetch.py
-./mikufetch.py
+pip install .    # install from local source directory
+mikufetch
+
+```
+Or
+```bash
+pip install mikufetch
+mikufetch
 ```
 
-### windows (powershell)
+### Windows (PowerShell)
 ```powershell
 git clone https://github.com/yogurtmenn/mikufetch.git
 cd mikufetch
-python .\mikufetch.py
+pip install .
+mikufetch
 ```
 
 ---
 
-## options
+## Options
 - `--no-art`: print info without ASCII art
 - `--no-color`: disable ANSI colors
 - `--json`: output JSON only
 
-examples:
+Examples:
 ```bash
-./mikufetch.py --no-art
-./mikufetch.py --json
+mikufetch --no-art
+mikufetch --json
 ```
