@@ -45,8 +45,12 @@ mikufetch
 - `--no-color`: disable ANSI colors
 - `--json`: output JSON only
 
-Examples:
-```bash
-mikufetch --no-art
-mikufetch --json
-```
+4. run it:
+   ```bash
+   ./mikufetch.py
+   ```
+
+
+screen of fetch:
+![Image alt](https://files.catbox.moe/zgzgzx.png)
+by [pie with jam](https://github.com/pie-with-jam)
