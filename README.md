@@ -50,3 +50,17 @@ Examples:
 mikufetch --no-art
 mikufetch --json
 ```
+
+---
+
+## Linux optional utilities
+
+For best detection (Resolution and GPU), install these non-Python utilities:
+
+- xrandr (for resolution)
+
+Install commands by distro:
+
+- Debian/Ubuntu: `sudo apt update && sudo apt install -y x11-xserver-utils mesa-utils`
+- Arch: `sudo pacman -S --noconfirm xorg-xrandr mesa-demos`
+- Fedora: `sudo dnf install -y xorg-x11-server-utils mesa-demos`

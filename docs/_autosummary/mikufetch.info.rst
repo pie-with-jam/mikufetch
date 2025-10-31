@@ -9,7 +9,6 @@ mikufetch.info
    .. autosummary::
    
       detect_cpu
-      detect_gpu
       detect_host
       detect_kernel
       detect_memory

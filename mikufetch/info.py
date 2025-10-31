@@ -72,6 +72,15 @@ def detect_kernel() -> str:
     Returns:
         str: Kernel release version.
     """
+    if _is_windows():
+        # Use the file version of ntoskrnl.exe to reflect the actual kernel build
+        ps = (
+            "powershell -NoProfile -Command "
+            "\"$p='C:/Windows/System32/ntoskrnl.exe'; "
+            "(Get-Item $p).VersionInfo.FileVersion\""
+        )
+        out = _run(ps)
+        return out or platform.release()
     return platform.release()
 
 
@@ -129,20 +138,6 @@ def detect_memory() -> str:
     except Exception:
         return "Unknown"
 
-
-def detect_gpu() -> str:
-    """
-    Detect main GPU name.
-
-    Returns:
-        str: GPU model string or 'Unknown'.
-    """
-    if _is_windows():
-        return _run("powershell -NoProfile -Command "
-                    "\"(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name | Select-Object -First 1)\"") or "Unknown"
-    return _run("lspci | grep -i vga | cut -d':' -f3 | xargs") or "Unknown"
-
-
 def detect_uptime() -> str:
     """
     Detect system uptime.
@@ -166,7 +161,7 @@ def detect_packages() -> str:
         str: Package count or 'Unknown'.
     """
     if _is_windows() or _is_macos():
-        return "Unknown"
+        return ""
     out = _run("dpkg --list | wc -l")
     if out:
         return f"{out} (dpkg)"
@@ -180,12 +175,35 @@ def detect_resolution() -> str:
     """
     Detect screen resolution.
 
-    Note:
-        Not implemented — placeholder for future support.
-
     Returns:
-        str: 'Unknown'
+        str: Resolution like '1920x1080' or 'Unknown'. On multi-monitor setups,
+        returns the primary display resolution.
     """
+    if _is_windows():
+        # Prefer CIM properties if present; otherwise use .NET SystemInformation
+        ps = (
+            "powershell -NoProfile -Command "
+            "\"$v=Get-CimInstance Win32_VideoController | Where-Object {$_.CurrentHorizontalResolution -and $_.CurrentVerticalResolution} | Select-Object -First 1; "
+            "if ($v) { '{0}x{1}' -f $v.CurrentHorizontalResolution,$v.CurrentVerticalResolution } "
+            "else { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SystemInformation]::PrimaryMonitorSize.Width.ToString() + 'x' + [System.Windows.Forms.SystemInformation]::PrimaryMonitorSize.Height }\""
+        )
+        return _run(ps) or "Unknown"
+
+    if _is_macos():
+        out = _run("system_profiler SPDisplaysDataType 2>/dev/null | awk -F'[ :]+' '/Resolution/ {print $2""x""$3; exit}'")
+        return out or "Unknown"
+
+    # Linux
+    out = _run("xrandr --current 2>/dev/null | awk '/\\*/ {print $1; exit}'")
+    if out:
+        return out
+    # Framebuffer fallback
+    fb = _run("cat /sys/class/graphics/fb0/virtual_size 2>/dev/null")
+    if fb and "," in fb:
+        w, h = fb.split(",", 1)
+        w = w.strip(); h = h.strip()
+        if w.isdigit() and h.isdigit():
+            return f"{w}x{h}"
     return "Unknown"
 
 
@@ -196,15 +214,20 @@ def get_sys_info() -> list[tuple[str, str]]:
     Returns:
         list[tuple[str, str]]: List of (key, value) system info pairs.
     """
-    return [
+    items: list[tuple[str, str]] = [
         ("OS", detect_os()),
         ("Host", detect_host()),
         ("Kernel", detect_kernel()),
         ("Uptime", detect_uptime()),
-        ("Packages", detect_packages()),
+    ]
+    # Only show packages where it makes sense (primarily Linux distros)
+    pkgs = detect_packages()
+    if pkgs:
+        items.append(("Packages", pkgs))
+    items.extend([
         ("Shell", detect_shell()),
         ("Resolution", detect_resolution()),
         ("CPU", detect_cpu()),
-        ("GPU", detect_gpu()),
         ("Memory", detect_memory()),
-    ]
+    ])
+    return items
