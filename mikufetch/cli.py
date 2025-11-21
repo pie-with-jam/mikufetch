@@ -19,6 +19,7 @@ GREEN = "\033[38;5;84m"
 YELLOW = "\033[38;5;228m"
 RESET = "\033[0m"
 
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 def _enable_windows_ansi():
     """

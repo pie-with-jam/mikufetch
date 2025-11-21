@@ -44,6 +44,15 @@ def _is_macos() -> bool:
     """
     return platform.system().lower() == "darwin"
 
+def _is_linux() -> bool:
+    """
+    Check whether the system is macOS.
+
+    Returns:
+        bool: True on macOS, otherwise False.
+    """
+    return platform.system().lower() == "linux"
+
 
 def detect_os() -> str:
     """
@@ -120,6 +129,14 @@ def detect_memory() -> str:
     Returns:
         str: Memory usage in format 'UsedMiB / TotalMiB' or 'Unknown'.
     """
+    if _is_macos():
+        raw = _run("sysctl hw.memsize")
+        try:
+            total = int(raw.split(":")[1].strip()) // (1024 * 1024)
+            return f"{total} MiB"
+        except:
+            return "Unknown"
+
     if _is_windows():
         ps = (
             "powershell -NoProfile -Command "
@@ -130,13 +147,11 @@ def detect_memory() -> str:
         )
         return _run(ps) or "Unknown"
 
-    try:
-        mem_total = int(_run("grep MemTotal /proc/meminfo | awk '{print $2}'"))
-        mem_avail = int(_run("grep MemAvailable /proc/meminfo | awk '{print $2}'"))
-        mem_used = mem_total - mem_avail
-        return f"{mem_used//1024}MiB / {mem_total//1024}MiB"
-    except Exception:
-        return "Unknown"
+    if platform.system().lower() == "linux":
+        raw = _run("grep MemTotal /proc/meminfo")
+        return raw.split()[1] + " kB"
+
+    return "Unknown"
 
 def detect_uptime() -> str:
     """
@@ -149,9 +164,28 @@ def detect_uptime() -> str:
         cmd = ("powershell -NoProfile -Command "
                "\"$ts=(Get-Date)-(Get-CimInstance Win32_OperatingSystem).LastBootUpTime; "
                "'{0}d {1}h {2}m' -f [int]$ts.Days,[int]$ts.Hours,[int]$ts.Minutes\"")
-        return _run(cmd) or "Unknown"
-    return _run("uptime -p") or "Unknown"
+        return _run(cmd)
 
+
+    if _is_macos():
+        raw = _run("uptime")
+        import re
+        m = re.search(r"up (.+?),\s+\d+ user", raw)
+        return m.group(1).replace(",", "") if m else "Unknown"
+
+
+    if _is_linux():
+        try:
+            with open("/proc/uptime") as f:
+                sec = float(f.read().split()[0])
+        except:
+            sec = 0
+        d = int(sec // 86400)
+        h = int((sec % 86400) // 3600)
+        m = int((sec % 3600) // 60)
+        return f"{d}d {h}h {m}m"
+
+    return "Unknown"
 
 def detect_packages() -> str:
     """
@@ -180,7 +214,6 @@ def detect_resolution() -> str:
         returns the primary display resolution.
     """
     if _is_windows():
-        # Prefer CIM properties if present; otherwise use .NET SystemInformation
         ps = (
             "powershell -NoProfile -Command "
             "\"$v=Get-CimInstance Win32_VideoController | Where-Object {$_.CurrentHorizontalResolution -and $_.CurrentVerticalResolution} | Select-Object -First 1; "
@@ -190,14 +223,17 @@ def detect_resolution() -> str:
         return _run(ps) or "Unknown"
 
     if _is_macos():
-        out = _run("system_profiler SPDisplaysDataType 2>/dev/null | awk -F'[ :]+' '/Resolution/ {print $2""x""$3; exit}'")
-        return out or "Unknown"
+        raw = _run("system_profiler SPDisplaysDataType | grep Resolution")
+        # формат:      Resolution: 2560 x 1600 Retina
+        parts = raw.replace("Resolution:", "").strip().split()
+        if len(parts) >= 3:
+            return f"{parts[0]}x{parts[2]}"
+        return "Unknown"
 
     # Linux
     out = _run("xrandr --current 2>/dev/null | awk '/\\*/ {print $1; exit}'")
     if out:
         return out
-    # Framebuffer fallback
     fb = _run("cat /sys/class/graphics/fb0/virtual_size 2>/dev/null")
     if fb and "," in fb:
         w, h = fb.split(",", 1)
