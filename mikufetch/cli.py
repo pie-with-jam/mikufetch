@@ -5,10 +5,9 @@ from argparse import ArgumentParser
 import json
 import os
 import sys
-from shutil import get_terminal_size
 from typing import List, Tuple
 
-from .info import get_sys_info
+from .info import get_sys_info, _is_windows
 from .art import MIKU_ART
 
 # ANSI colors (used only for the info text, not for the art itself)
@@ -18,8 +17,6 @@ CYAN = "\033[38;5;87m"
 GREEN = "\033[38;5;84m"
 YELLOW = "\033[38;5;228m"
 RESET = "\033[0m"
-
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 def _enable_windows_ansi():
     """
@@ -143,6 +140,12 @@ def main() -> int:
     Returns:
         int: Exit status code (0 = success).
     """
+    if _is_windows():
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
     args = parse_args()
     info = get_sys_info()
     display_info(info, no_art=args.no_art, no_color=args.no_color, json_out=args.json)

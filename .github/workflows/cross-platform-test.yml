@@ -23,6 +23,11 @@ jobs:
           pip install --upgrade pip
           pip install mikufetch
 
+      - name: Enable UTF-8 on Windows
+        if: runner.os == 'Windows'
+        run: |
+          chcp 65001
+
       - name: Run mikufetch
         run: |
           mikufetch
