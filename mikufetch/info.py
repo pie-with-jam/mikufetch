@@ -7,6 +7,7 @@ and returns them in a unified format for rendering in the CLI.
 import platform
 import subprocess
 import os
+import time
 
 
 def _run(cmd: str) -> str:
@@ -130,12 +131,15 @@ def detect_memory() -> str:
         str: Memory usage in format 'UsedMiB / TotalMiB' or 'Unknown'.
     """
     if _is_macos():
-        raw = _run("sysctl hw.memsize")
         try:
-            total = int(raw.split(":")[1].strip()) // (1024 * 1024)
-            return f"{total} MiB"
-        except:
-            return "Unknown"
+            out = subprocess.check_output(
+                ["sysctl", "-n", "hw.memsize"],
+                text=True
+            ).strip()
+            mem = int(out) / (1024 ** 3)
+            return f"{mem:.1f} GB"
+        except Exception:
+            return "unknown"
 
     if _is_windows():
         ps = (
@@ -160,32 +164,48 @@ def detect_uptime() -> str:
     Returns:
         str: Human-readable uptime (e.g., '2d 5h 11m') or raw uptime string on Linux.
     """
-    if _is_windows():
-        cmd = ("powershell -NoProfile -Command "
-               "\"$ts=(Get-Date)-(Get-CimInstance Win32_OperatingSystem).LastBootUpTime; "
-               "'{0}d {1}h {2}m' -f [int]$ts.Days,[int]$ts.Hours,[int]$ts.Minutes\"")
-        return _run(cmd)
-
-
     if _is_macos():
-        raw = _run("uptime")
-        import re
-        m = re.search(r"up (.+?),\s+\d+ user", raw)
-        return m.group(1).replace(",", "") if m else "Unknown"
+        try:
+            out = subprocess.check_output(
+                ["system_profiler", "SPDisplaysDataType"],
+                text=True
+            )
 
+            # ищем строку типа "Resolution: 1920 x 1080"
+            for line in out.splitlines():
+                if "Resolution:" in line:
+                    parts = line.split(":")[1].strip()
+                    return parts.replace(" x ", "x")
+        except Exception:
+            return "unknown"
 
     if _is_linux():
         try:
-            with open("/proc/uptime") as f:
-                sec = float(f.read().split()[0])
-        except:
-            sec = 0
-        d = int(sec // 86400)
-        h = int((sec % 86400) // 3600)
-        m = int((sec % 3600) // 60)
-        return f"{d}d {h}h {m}m"
+            with open("/proc/uptime", "r") as f:
+                total_seconds = float(f.read().split()[0])
+            days = int(total_seconds // 86400)
+            hours = int((total_seconds % 86400) // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            return f"{days}d {hours}h {minutes}m"
+        except Exception:
+            return "unknown"
 
-    return "Unknown"
+    if _is_windows():
+        try:
+            cmd = ("powershell -NoProfile -Command "
+                   "\"(Get-Date)-(Get-CimInstance Win32_OperatingSystem).LastBootUpTime\"")
+            out = subprocess.check_output(cmd, shell=True, text=True).strip()
+            parts = out.split(".")[0]
+            days, time_hms = parts.split(":")[0].split(".")[0], parts
+            if "." in parts:
+                dd = int(parts.split(":")[0].split(".")[0])
+                hh, mm, ss = map(int, parts.split(":")[1:])
+                return f"{dd}d {hh}h {mm}m"
+        except Exception:
+            pass
+        return "unknown"
+
+    return "unknown"
 
 def detect_packages() -> str:
     """
@@ -224,13 +244,11 @@ def detect_resolution() -> str:
 
     if _is_macos():
         raw = _run("system_profiler SPDisplaysDataType | grep Resolution")
-        # формат:      Resolution: 2560 x 1600 Retina
         parts = raw.replace("Resolution:", "").strip().split()
         if len(parts) >= 3:
             return f"{parts[0]}x{parts[2]}"
         return "Unknown"
 
-    # Linux
     out = _run("xrandr --current 2>/dev/null | awk '/\\*/ {print $1; exit}'")
     if out:
         return out

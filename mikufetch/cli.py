@@ -141,8 +141,11 @@ def main() -> int:
         int: Exit status code (0 = success).
     """
     if _is_windows():
+        os.environ["PYTHONIOENCODING"] = "utf-8"
+        os.environ["PYTHONUTF8"] = "1"
         try:
             sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
         except Exception:
             pass
 
